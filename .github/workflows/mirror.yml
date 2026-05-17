@@ -1,9 +1,9 @@
 name: Bezpecne Zrcadleni do jine vetve
 
 on:
-  workflow_dispatch: # Ruční spuštění
+  workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # Kontrola každých 5 minut
+    - cron: '*/5 * * * *'
 
 jobs:
   check-and-mirror:
@@ -11,24 +11,19 @@ jobs:
     steps:
       - name: Porovnání větví a bezpečné zrcadlení
         run: |
-          # 1. Získání posledního commitu ze zdrojového webu (smilos71/web)
           ORIGINAL_SHA=$(git ls-remote https://github.com refs/heads/main | awk '{print $1}')
           
-          # 2. Získání posledního commitu z vaší zrcadlené větve (spamsmilosakrfgd55/w)
           YOUR_SHA=$(git ls-remote https://github.com refs/heads/mirror-main | awk '{print $1}')
           
           echo "Originál (main): $ORIGINAL_SHA"
           echo "Vaše zrcadlo (mirror-main): $YOUR_SHA"
 
-          # 3. Pokud se liší, provede se aktualizace
           if [ "$ORIGINAL_SHA" != "$YOUR_SHA" ] || [ -z "$YOUR_SHA" ]; then
             echo "Zjištěna změna! Aktualizuji větev mirror-main..."
             
-            # Klonování originálu do dočasné složky
             git clone --branch main --single-branch https://github.com repo_folder
             cd repo_folder
             
-            # Nahrání přímo do vašeho repozitáře spamsmilosakrfgd55/w do větve mirror-main
             git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@://github.com main:mirror-main --force
             echo "Větev mirror-main byla úspěšně aktualizována."
           else
