@@ -1,0 +1,36 @@
+name: Inteligentni 1:1 Zrcadleni
+
+on:
+  workflow_dispatch: # Umožní vám zrcadlení spustit HNED TEĎ ručně kliknutím v GitHubu
+  schedule:
+    - cron: '*/5 * * * *' # Kontrola každých 5 minut
+
+jobs:
+  check-and-mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Porovnání repozitářů a zrcadlení
+        run: |
+          # 1. Získání hashe posledního commitu z originálu
+          ORIGINAL_SHA=$(git ls-remote https://github.com HEAD | awk '{print $1}')
+          
+          # 2. Získání hashe posledního commitu z vašeho zrcadla
+          YOUR_SHA=$(git ls-remote https://github.com{{ github.event.repository.name }}.git HEAD | awk '{print $1}')
+          
+          echo "Originál commit: $ORIGINAL_SHA"
+          echo "Vaše zrcadlo commit: $YOUR_SHA"
+
+          # 3. Pokud se liší (nebo vaše repo ještě nic nemá), provede se 1:1 kopie
+          if [ "$ORIGINAL_SHA" != "$YOUR_SHA" ] || [ -z "$YOUR_SHA" ]; then
+            echo "Zjištěna změna nebo prázdné repo! Spouštím zrcadlení..."
+            
+            # Klonování originálu
+            git clone --bare https://github.com mirror_repo
+            cd mirror_repo
+            
+            # Zrcadlení 1:1
+            git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@://github.com{{ github.event.repository.name }}.git --mirror --force
+            echo "Zrcadlení úspěšně dokončeno."
+          else
+            echo "Repozitáře jsou identické. Není potřeba nic kopírovat."
+          fi
