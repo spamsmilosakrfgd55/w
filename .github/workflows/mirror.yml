@@ -1,36 +1,36 @@
-name: Inteligentni 1:1 Zrcadleni
+name: Bezpecne Zrcadleni do jine vetve
 
 on:
   workflow_dispatch: # Ruční spuštění v záložce Actions
   schedule:
-    - cron: '*/5 * * * *' # Kontrola každých 5 minut (zcela ZDARMA pro veřejná repa)
+    - cron: '*/5 * * * *' # Kontrola každých 5 minut
 
 jobs:
   check-and-mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: Porovnání repozitářů a zrcadlení
+      - name: Porovnání větví a bezpečné zrcadlení
         run: |
-          # 1. Získání hashe posledního commitu z originálu
-          ORIGINAL_SHA=$(git ls-remote https://github.com HEAD | awk '{print $1}')
+          # 1. Získání posledního commitu z originálního webu (main)
+          ORIGINAL_SHA=$(git ls-remote https://github.com refs/heads/main | awk '{print $1}')
           
-          # 2. Získání hashe posledního commitu z vašeho zrcadla
-          YOUR_SHA=$(git ls-remote https://github.com{{ github.event.repository.name }}.git HEAD | awk '{print $1}')
+          # 2. Získání posledního commitu z vaší zrcadlené větve (mirror-main)
+          YOUR_SHA=$(git ls-remote https://github.com{{ github.event.repository.name }}.git refs/heads/mirror-main | awk '{print $1}')
           
-          echo "Originál commit: $ORIGINAL_SHA"
-          echo "Vaše zrcadlo commit: $YOUR_SHA"
+          echo "Originál (main): $ORIGINAL_SHA"
+          echo "Vaše zrcadlo (mirror-main): $YOUR_SHA"
 
-          # 3. Pokud se liší (nebo vaše repo ještě nic nemá), provede se 1:1 kopie
+          # 3. Pokud se liší, stáhneme pouze main a nahrajeme ho k vám jako mirror-main
           if [ "$ORIGINAL_SHA" != "$YOUR_SHA" ] || [ -z "$YOUR_SHA" ]; then
-            echo "Zjištěna změna nebo prázdné repo! Spouštím zrcadlení..."
+            echo "Zjištěna změna! Aktualizuji větev mirror-main..."
             
-            # Klonování originálu
-            git clone --bare https://github.com mirror_repo
-            cd mirror_repo
+            # Klonujeme pouze větev main z originálu
+            git clone --branch main --single-branch https://github.com repo_folder
+            cd repo_folder
             
-            # Zrcadlení 1:1
-            git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@://github.com{{ github.event.repository.name }}.git --mirror --force
-            echo "Zrcadlení úspěšně dokončeno."
+            # Nahrajeme ji k vám do větve mirror-main (parametr --force přepíše pouze tuto jednu větev)
+            git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@://github.com{{ github.event.repository.name }}.git main:mirror-main --force
+            echo "Větev mirror-main byla úspěšně aktualizována."
           else
-            echo "Repozitáře jsou identické. Není potřeba nic kopírovat."
+            echo "Žádné změny. Repozitáře jsou synchronizované."
           fi
