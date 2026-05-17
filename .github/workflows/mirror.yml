@@ -1,5 +1,4 @@
 name: Bezpecne Zrcadleni do jine vetve
-
 on:
   workflow_dispatch:
   schedule:
@@ -11,20 +10,20 @@ jobs:
     steps:
       - name: Porovnání větví a bezpečné zrcadlení
         run: |
-          ORIGINAL_SHA=$(git ls-remote https://github.com refs/heads/main | awk '{print $1}')
-          
-          YOUR_SHA=$(git ls-remote https://github.com refs/heads/mirror-main | awk '{print $1}')
-          
+          ORIGINAL_SHA=$(git ls-remote https://github.com/smilos71/web refs/heads/main | awk '{print $1}')
+          YOUR_SHA=$(git ls-remote https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/${{ github.repository }} refs/heads/mirror-main | awk '{print $1}')
+
           echo "Originál (main): $ORIGINAL_SHA"
           echo "Vaše zrcadlo (mirror-main): $YOUR_SHA"
 
           if [ "$ORIGINAL_SHA" != "$YOUR_SHA" ] || [ -z "$YOUR_SHA" ]; then
             echo "Zjištěna změna! Aktualizuji větev mirror-main..."
-            
-            git clone --branch main --single-branch https://github.com repo_folder
+
+            git clone --branch main --single-branch https://github.com/smilos71/web repo_folder
             cd repo_folder
-            
-            git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@://github.com main:mirror-main --force
+
+            git push https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/${{ github.repository }} main:mirror-main --force
+
             echo "Větev mirror-main byla úspěšně aktualizována."
           else
             echo "Žádné změny. Repozitáře jsou synchronizované."
